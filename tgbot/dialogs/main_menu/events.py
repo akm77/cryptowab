@@ -68,5 +68,8 @@ async def on_success_enter_account_address(message: Message, widget: Widget, man
         message_text = "\n".join(m)
     else:
         message_text = f"Wrong wallet address {address}"
-    await message.answer(message_text)
+    try:
+        await message.answer(message_text)
+    except Exception as e:
+        logger.error("Error %r", )
     await manager.switch_to(states.MainMenuStates.select_wallet)
