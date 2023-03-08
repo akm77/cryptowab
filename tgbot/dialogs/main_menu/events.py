@@ -63,7 +63,7 @@ async def on_success_enter_account_address(message: Message, widget: Widget, man
     address_book = await read_address_book_by_id(session=db_session, id=message.chat.id)
     if accounts:
         m = [(f"Wallet address {net_account.address} added successfully\n"
-              f"TOKEN: {net_account.native_balance}\n{net_account.account_type_id} {net_account.token_balance}\n")
+              f"TOKEN: {net_account.native_balance}\n{net_account.account_type_id}: {net_account.token_balance}\n")
              for net_account in accounts]
 
         message_text = "\n".join(m)
