@@ -11,6 +11,10 @@ aiogram-dialog = ">=2.0.0b17"
 SQLAlchemy = "^2.0.4"
 python-dotenv = "^1.0.0"
 aiosqlite = "^0.18.0"
+redis = "^4.5.1"
+fake-useragent = "^1.1.1"
+base58 = "^2.1.1"
+tenacity = "^8.2.2"
 
 [tool.poetry.dev-dependencies]
 

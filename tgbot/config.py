@@ -1,4 +1,6 @@
-from pydantic import BaseSettings, SecretStr
+from typing import Any
+
+from pydantic import BaseSettings, SecretStr, RedisDsn
 
 
 class Settings(BaseSettings):
@@ -6,10 +8,11 @@ class Settings(BaseSettings):
     admins: list[int]
     use_redis: bool
 
-    redis_host: str
-    redis_port: int
-    redis_db: int
-    redis_password: SecretStr
+    tron_api_keys: list[str]
+    bsc_scan_api_keys: list[str]
+    etherscan_api_keys: list[str]
+
+    redis_dsn: RedisDsn
 
     db_dialect: str
     db_user: str
@@ -24,10 +27,16 @@ class Settings(BaseSettings):
         def parse_env_var(cls, field_name: str, raw_val: str) -> Any:
             if field_name == 'admins':
                 return [int(x) for x in raw_val.split(',')]
+            if field_name == 'tron_api_keys':
+                return raw_val.split(',')
+            if field_name == 'bsc_scan_api_keys':
+                return raw_val.split(',')
+            if field_name == 'etherscan_api_keys':
+                return raw_val.split(',')
             return cls.json_loads(raw_val)
 
         env_file = '.env'
         env_file_encoding = 'utf-8'
 
 
-config = Settings()
+settings = Settings()
