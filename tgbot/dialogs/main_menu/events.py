@@ -6,8 +6,7 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.api.internal import Widget
 
 from . import states
-from ...models.dm_implementation import read_account_by_address, read_address_book_by_id, upsert_account, \
-    upsert_address_book
+from ...models.dm_implementation import read_account_by_address, read_address_book_by_id
 from ...models.tokenaccount import Account
 from ...wallet_readers.url_reader import TronAccountReader, EthereumAccountReader, BSCSCAN_API_URL, \
     BSCSCAN_USDT_CONTRACT
