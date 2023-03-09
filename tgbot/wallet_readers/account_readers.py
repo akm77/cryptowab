@@ -348,6 +348,19 @@ class EthereumAccountReader(UrlReader):
         self.__token_transactions_params["apikey"] = self.__api_key
 
     @property
+    def api_keys(self):
+        return self.__api_keys
+
+    @api_keys.setter
+    def api_keys(self, api_keys):
+        self.__api_keys = api_keys
+        self.__api_key = random.choice(api_keys)
+        self.__native_balance_params["apikey"] = self.__api_key
+        self.__token_balance_params["apikey"] = self.__api_key
+        self.__native_transactions_params["apikey"] = self.__api_key
+        self.__token_transactions_params["apikey"] = self.__api_key
+
+    @property
     def api_key(self):
         return self.__api_key
 
@@ -383,11 +396,29 @@ class EthereumAccountReader(UrlReader):
                               native_balance=int(native_balance_raw_data.get("result")),
                               token_balance=int(token_balance_raw_data.get("result")), )
 
-    def __process_native_transaction(self, trn) -> Optional[AccountTransaction]:
-        pass
+    def __process_transaction(self, data):
+        return (AccountTransaction(address=trn["to"],
+                                   amount=-int(trn["value"]),
+                                   timestamp=datetime.datetime.fromtimestamp(int(trn.get('timeStamp')),
+                                                                             datetime.timezone.utc))
+                if self.__address.lower() == trn["from"].lower()
+                else AccountTransaction(address=trn["from"],
+                                        amount=int(trn["value"]),
+                                        timestamp=datetime.datetime.fromtimestamp(
+                                            int(trn.get('timeStamp')),
+                                            datetime.timezone.utc))
+                for trn in data if int(trn["value"]))
 
     async def get_native_transactions(self):
-        pass
+        self.params = self.__native_transactions_params
+        native_transactions_raw_data = await self.get_raw_data()
+        if native_transactions_raw_data and native_transactions_raw_data.get("message") != "OK":
+            return
+        return self.__process_transaction(native_transactions_raw_data.get("result", []))
 
     async def get_token_transactions(self) -> Optional[Generator[AccountTransaction, Any, None]]:
-        pass
+        self.params = self.__token_transactions_params
+        token_transactions_raw_data = await self.get_raw_data()
+        if token_transactions_raw_data and token_transactions_raw_data.get("message") != "OK":
+            return
+        return self.__process_transaction(token_transactions_raw_data.get("result", []))

@@ -5,10 +5,11 @@ from aiogram.types import Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.api.internal import Widget
 from aiogram_dialog.widgets.input import MessageInput
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from . import states
 from ...models.dm_implementation import read_account_by_address, read_address_book_by_id
-from ...models.tokenaccount import Account
+from ...models.addressbook import Account
 from ...wallet_readers.account_readers import TronAccountReader, EthereumAccountReader, BSCSCAN_API_URL, \
     BSCSCAN_USDT_CONTRACT
 
@@ -31,23 +32,24 @@ async def ensure_account_at_net(http_session, address, api_keys: dict) -> Option
                                       api_keys=api_keys.get('ERC20'),
                                       logger=logger)
     if balance := await etherscan.get_account_data():
-        accounts.append(Account(address=address, account_type='ERC20', native_balance=balance.native_balance,
+        accounts.append(Account(address=address.lower(), account_type='ERC20', native_balance=balance.native_balance,
                                 token_balance=balance.token_balance))
 
-    bscscan = EthereumAccountReader(session=http_session,
-                                    address=address,
-                                    api_keys=api_keys.get('BEP20'),
-                                    url=BSCSCAN_API_URL,
-                                    usdt_contract=BSCSCAN_USDT_CONTRACT,
-                                    logger=logger)
-    if balance := await bscscan.get_account_data():
-        accounts.append(Account(address=address, account_type='BEP20', native_balance=balance.native_balance,
+    etherscan.url = BSCSCAN_API_URL
+    etherscan.usdt_contract = BSCSCAN_USDT_CONTRACT
+    etherscan.api_keys = api_keys.get('BEP20')
+    if balance := await etherscan.get_account_data():
+        accounts.append(Account(address=address.lower(), account_type='BEP20', native_balance=balance.native_balance,
                                 token_balance=balance.token_balance))
     return accounts if len(accounts) else None
 
 
+async def ensure_persist_at_db(db_session: async_sessionmaker, accounts: List[Account], message: Message):
+    pass
+
+
 async def on_error_enter_account_address(message: Message, widget: Widget, manager: DialogManager):
-    await message.answer("Error in wallet address")
+    await message.answer("Error in account address")
     await manager.switch_to(states.MainMenuStates.select_wallet)
 
 
@@ -60,18 +62,6 @@ async def account_address_handler(message: Message, message_input: MessageInput,
                 'BEP20': config.bsc_scan_api_keys,
                 'ERC20': config.etherscan_api_keys}
     accounts = await ensure_account_at_net(http_session, message.text, api_keys)
-    db_account = await read_account_by_address(db_session, message.text)
-    address_book = await read_address_book_by_id(session=db_session, id=message.chat.id)
     if accounts:
-        m = [(f"Wallet address {net_account.address} added successfully\n"
-              f"TOKEN: {net_account.native_balance}\n{net_account.account_type_id}: {net_account.token_balance}\n")
-             for net_account in accounts]
-
-        message_text = "\n".join(m)
-    else:
-        message_text = f"Wrong wallet address {message.text}"
-    try:
-        await message.answer(message_text)
-    except Exception as e:
-        logger.error("Error %r", )
+        await ensure_persist_at_db(db_session, accounts, message)
     await manager.switch_to(states.MainMenuStates.select_wallet)

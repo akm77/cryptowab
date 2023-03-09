@@ -9,7 +9,7 @@ from . import keyboards, states, onclick, constants, getters, events
 
 def main_menu_window():
     return Window(
-        Const("Wallets"),
+        Const("Accounts"),
         keyboards.wallets_list_kbd(on_click=onclick.on_select_wallet),
         Row(Cancel(Const("<<")),
             SwitchTo(Const("+"),
@@ -22,7 +22,7 @@ def main_menu_window():
 
 def enter_wallet_address_window():
     return Window(
-        Const("👇 Enter wallet address 👇"),
+        Const("👇 Enter account address 👇"),
         MessageInput(events.account_address_handler,
                      content_types=[ContentType.TEXT]),
         state=states.MainMenuStates.enter_wallet_address

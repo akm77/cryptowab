@@ -33,10 +33,10 @@ async def on_bot_join(event: types.ChatMemberUpdated, bot: Bot, **middleware_dat
         chat_title = event.chat.title or event.from_user.full_name
         config = middleware_data.get("config")
         session = middleware_data.get("db_session")
-        result = await read_address_book_by_id(session=session, id=event.chat.id)
+        address_book = await read_address_book_by_id(session=session, id=event.chat.id)
 
-        if result and not result.is_active:
-            await upsert_address_book(session, id=event.chat.id, title=chat_title, is_active=not result.is_active)
+        if address_book and not address_book.is_active:
+            await upsert_address_book(session, id=event.chat.id, title=chat_title, is_active=not address_book.is_active)
         message_text = f"Bot was added to {event.chat.type} chat, chat title is {chat_title}"
         await bot.send_message(
             chat_id=event.chat.id,
@@ -64,10 +64,10 @@ async def on_bot_leave(event: types.ChatMemberUpdated, bot: Bot, **middleware_da
     if event.chat.id not in cache.keys():
         config = middleware_data.get("config")
         session = middleware_data.get("db_session")
-        result = await read_address_book_by_id(session=session, id=event.chat.id)
-        chat_title = result.title if result else event.chat.title
-        if result and result.is_active:
-            await upsert_address_book(session, id=event.chat.id, title=chat_title, is_active=not result.is_active)
+        address_book = await read_address_book_by_id(session=session, id=event.chat.id)
+        chat_title = address_book.title if address_book else event.chat.title
+        if address_book and address_book.is_active:
+            await upsert_address_book(session, id=event.chat.id, title=chat_title, is_active=not address_book.is_active)
         message_text = f"Bot was kicked in {event.chat.type} chat, chat title is {chat_title}"
         await broadcaster.broadcast(bot, config.admins, message_text)
 

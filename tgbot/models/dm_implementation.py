@@ -7,7 +7,7 @@ from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import joinedload
 
-from tgbot.models.tokenaccount import AddressBook, Account, AccountAddressBook
+from tgbot.models.addressbook import AddressBook, Account, AddressBookEntry
 
 logger = logging.getLogger(__name__)
 
@@ -20,20 +20,12 @@ def get_upsert_address_book_statement(values: dict):
                   is_active=insert_statement.excluded.is_active)).returning(AddressBook.id)
 
 
-async def upsert_address_book(session: async_sessionmaker,
-                              id: int,
-                              title: str,
-                              account_alias: str,
-                              is_active: bool = True,
-                              account: Account = None) -> Optional[int]:
+async def upsert_address_book(session: async_sessionmaker, id: int, title: str, is_active: bool = True) -> Optional[int]:
     """
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(64), nullable=False)
-    is_private: Mapped[bool] = mapped_column(Boolean, server_default=expression.true())
     is_active: Mapped[bool] = mapped_column(Boolean, server_default=expression.true())
 
-    :param account_alias:
-    :param account:
     :param id:
     :param title:
     :param is_active:
@@ -47,10 +39,6 @@ async def upsert_address_book(session: async_sessionmaker,
     async with session() as session:
         try:
             result: Result = await session.execute(statement)
-            if account:
-                insert_statement = insert(AccountAddressBook).values(address_book_id=id,
-                                                                     account_address=account.address,
-                                                                     account_alias=account_alias)
             await session.commit()
             return result.scalar_one_or_none()
         except IntegrityError as e:
@@ -90,10 +78,7 @@ def get_upsert_account_statement(values: dict):
                   token_balance=insert_statement.excluded.token_balance)).returning(Account.address)
 
 
-async def upsert_account(session: async_sessionmaker,
-                         address: str,
-                         account_type_id: str,
-                         trx_balance: int,
+async def upsert_account(session: async_sessionmaker, address: str, account_type_id: str, native_balance: int,
                          token_balance: int) -> Optional[str]:
     """
     address: Mapped[str] = mapped_column(String(128), primary_key=True)
@@ -105,7 +90,7 @@ async def upsert_account(session: async_sessionmaker,
     """
     values = {"address": address,
               "account_type_id": account_type_id,
-              "trx_balance": trx_balance,
+              "native_balance": native_balance,
               "token_balance": token_balance}
     statement = get_upsert_account_statement(values)
     async with session() as session:
