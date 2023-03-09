@@ -4,11 +4,12 @@ from typing import Optional, List
 from aiogram.types import Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.api.internal import Widget
+from aiogram_dialog.widgets.input import MessageInput
 
 from . import states
 from ...models.dm_implementation import read_account_by_address, read_address_book_by_id
 from ...models.tokenaccount import Account
-from ...wallet_readers.url_reader import TronAccountReader, EthereumAccountReader, BSCSCAN_API_URL, \
+from ...wallet_readers.account_readers import TronAccountReader, EthereumAccountReader, BSCSCAN_API_URL, \
     BSCSCAN_USDT_CONTRACT
 
 logger = logging.getLogger(__name__)
@@ -50,15 +51,16 @@ async def on_error_enter_account_address(message: Message, widget: Widget, manag
     await manager.switch_to(states.MainMenuStates.select_wallet)
 
 
-async def on_success_enter_account_address(message: Message, widget: Widget, manager: DialogManager, address):
+async def account_address_handler(message: Message, message_input: MessageInput,
+                                  manager: DialogManager):
     db_session = manager.middleware_data.get("db_session")
     http_session = manager.middleware_data.get("http_session")
     config = manager.middleware_data.get("config")
     api_keys = {'TRC20': config.tron_api_keys,
                 'BEP20': config.bsc_scan_api_keys,
                 'ERC20': config.etherscan_api_keys}
-    accounts = await ensure_account_at_net(http_session, address, api_keys)
-    db_account = await read_account_by_address(db_session, address)
+    accounts = await ensure_account_at_net(http_session, message.text, api_keys)
+    db_account = await read_account_by_address(db_session, message.text)
     address_book = await read_address_book_by_id(session=db_session, id=message.chat.id)
     if accounts:
         m = [(f"Wallet address {net_account.address} added successfully\n"
@@ -67,7 +69,7 @@ async def on_success_enter_account_address(message: Message, widget: Widget, man
 
         message_text = "\n".join(m)
     else:
-        message_text = f"Wrong wallet address {address}"
+        message_text = f"Wrong wallet address {message.text}"
     try:
         await message.answer(message_text)
     except Exception as e:

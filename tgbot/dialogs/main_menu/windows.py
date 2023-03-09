@@ -1,5 +1,6 @@
+from aiogram.enums import ContentType
 from aiogram_dialog import Window
-from aiogram_dialog.widgets.input import TextInput
+from aiogram_dialog.widgets.input import TextInput, MessageInput
 from aiogram_dialog.widgets.kbd import Cancel, Row, SwitchTo
 from aiogram_dialog.widgets.text import Const
 
@@ -22,10 +23,8 @@ def main_menu_window():
 def enter_wallet_address_window():
     return Window(
         Const("👇 Enter wallet address 👇"),
-        TextInput(id=constants.MainMenu.ENTER_WALLET_ADDRESS,
-                  type_factory=str,
-                  on_error=events.on_error_enter_account_address,
-                  on_success=events.on_success_enter_account_address),
+        MessageInput(events.account_address_handler,
+                     content_types=[ContentType.TEXT]),
         state=states.MainMenuStates.enter_wallet_address
     )
 

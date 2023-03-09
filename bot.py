@@ -6,6 +6,7 @@ import aiohttp
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
+from aiogram.fsm.strategy import FSMStrategy
 from aiohttp import ClientSession
 
 from tgbot.config import settings
@@ -33,7 +34,7 @@ def register_global_middlewares(dp: Dispatcher, config, db_session, http_session
 
 async def main():
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format=u'%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s',
     )
     logger.info("Starting bot")
@@ -41,7 +42,8 @@ async def main():
     config = settings
     if config.use_redis:
         storage = RedisStorage.from_url(config.redis_dsn, key_builder=DefaultKeyBuilder(with_bot_id=True,
-                                                                                        with_destiny=True))
+                                                                                        with_destiny=True),
+                                        )
     else:
         storage = MemoryStorage()
 
@@ -49,7 +51,7 @@ async def main():
                                          config.db_pass.get_secret_value(), config.db_host, config.db_echo)
     http_session = aiohttp.ClientSession()
     bot = Bot(token=config.bot_token.get_secret_value(), parse_mode='HTML')
-    dp = Dispatcher(storage=storage)
+    dp = Dispatcher(storage=storage, fsm_strategy=FSMStrategy.CHAT)
     dp["http_session"] = http_session
     dp.shutdown.register(on_shutdown)
 
