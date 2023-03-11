@@ -156,3 +156,13 @@ async def ensure_persist_at_db(db_session: async_sessionmaker,
                                               address_book_id=address_book_id,
                                               address_book_title=address_book_title,
                                               accounts=accounts)
+
+
+async def get_address_book_entries(session: async_sessionmaker,
+                                   address_book_id: int) -> Sequence[AddressBookEntry] | None:
+    statement = select(AddressBookEntry).where(AddressBookEntry.address_book_id == address_book_id)
+    statement = statement.options(joinedload(AddressBookEntry.account,
+                                             innerjoin=True).joinedload(Account.account_type, innerjoin=True))
+    async with session() as session:
+        result: Result = await session.execute(statement)
+        return result.scalars().all()

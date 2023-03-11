@@ -16,7 +16,7 @@ def main_menu_window():
                      id=constants.MainMenu.NEW_WALLET,
                      state=states.MainMenuStates.enter_wallet_address)),
         state=states.MainMenuStates.select_wallet,
-        getter=getters.get_wallets
+        getter=getters.get_address_book
     )
 
 

@@ -81,7 +81,7 @@ class AddressBookEntry(Base):
     account_type_id: Mapped[str] = mapped_column(String(16), nullable=False, primary_key=True)
 
     account_alias: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
-    track_trx: Mapped[bool] = mapped_column(Boolean, server_default=expression.false())
+    track_native: Mapped[bool] = mapped_column(Boolean, server_default=expression.false())
     track_token: Mapped[bool] = mapped_column(Boolean, server_default=expression.false())
     schedule: Mapped[int] = mapped_column(server_default=text("10"))
 
@@ -94,5 +94,5 @@ class AddressBookEntry(Base):
     def __repr__(self) -> str:
         return (f"AddressBookEntry(address_book_id={self.address_book_id!r}, "
                 f"account_address={self.account_address!r}, account type {self.account_type_id!r}"
-                f"account_alias={self.account_alias!r}), track_trx={self.track_trx!r}, "
+                f"account_alias={self.account_alias!r}), track_native={self.track_native!r}, "
                 f"track_token={self.track_token!r}, schedule={self.schedule!r}")
