@@ -61,7 +61,7 @@ async def main():
         bot_chat_member_router,
         admin_router,
         user_router,
-        echo_router
+        # echo_router
     ]:
 
         dp.include_router(router)
