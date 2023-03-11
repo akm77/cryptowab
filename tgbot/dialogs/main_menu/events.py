@@ -1,51 +1,15 @@
 import logging
-from typing import Optional, List
 
 from aiogram.types import Message
 from aiogram_dialog import DialogManager
 from aiogram_dialog.api.internal import Widget
 from aiogram_dialog.widgets.input import MessageInput
-from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from . import states
-from ...models.dm_implementation import read_account_by_address, read_address_book_by_id
-from ...models.addressbook import Account
-from ...wallet_readers.account_readers import TronAccountReader, EthereumAccountReader, BSCSCAN_API_URL, \
-    BSCSCAN_USDT_CONTRACT
+from ...models.dm_implementation import check_address_book_entry, ensure_persist_at_db
+from ...utils.net_accounts import ensure_account_at_net
 
 logger = logging.getLogger(__name__)
-
-
-async def ensure_account_at_net(http_session, address, api_keys: dict) -> Optional[List[Account]]:
-    accounts = []
-    tron = TronAccountReader(session=http_session,
-                             address=address,
-                             api_keys=api_keys.get('TRC20'),
-                             logger=logger)
-
-    if balance := await tron.get_account_data():
-        accounts.append(Account(address=address, account_type='TRC20', native_balance=balance.native_balance,
-                                token_balance=balance.token_balance))
-
-    etherscan = EthereumAccountReader(session=http_session,
-                                      address=address,
-                                      api_keys=api_keys.get('ERC20'),
-                                      logger=logger)
-    if balance := await etherscan.get_account_data():
-        accounts.append(Account(address=address.lower(), account_type='ERC20', native_balance=balance.native_balance,
-                                token_balance=balance.token_balance))
-
-    etherscan.url = BSCSCAN_API_URL
-    etherscan.usdt_contract = BSCSCAN_USDT_CONTRACT
-    etherscan.api_keys = api_keys.get('BEP20')
-    if balance := await etherscan.get_account_data():
-        accounts.append(Account(address=address.lower(), account_type='BEP20', native_balance=balance.native_balance,
-                                token_balance=balance.token_balance))
-    return accounts if len(accounts) else None
-
-
-async def ensure_persist_at_db(db_session: async_sessionmaker, accounts: List[Account], message: Message):
-    pass
 
 
 async def on_error_enter_account_address(message: Message, widget: Widget, manager: DialogManager):
@@ -62,6 +26,26 @@ async def account_address_handler(message: Message, message_input: MessageInput,
                 'BEP20': config.bsc_scan_api_keys,
                 'ERC20': config.etherscan_api_keys}
     accounts = await ensure_account_at_net(http_session, message.text, api_keys)
-    if accounts:
-        await ensure_persist_at_db(db_session, accounts, message)
+    if not accounts:
+        message_text = f"Wrong account address {message.text}"
+        await message.answer(message_text)
+        await manager.switch_to(states.MainMenuStates.select_wallet)
+        return
+
+    address_book_id = message.chat.id
+
+    message_text = ""
+    for account in accounts:
+        entry = await check_address_book_entry(session=db_session,
+                                               address_book_id=address_book_id,
+                                               account_address=account.address,
+                                               account_type_id=account.account_type_id)
+        if entry:
+            message_text += f"{entry.account_alias} ({entry.account_address}) already in address book.\n"
+            continue
+        address_book_entries = await ensure_persist_at_db(db_session, [account], message)
+        if address_book_entries:
+            message_text += f"Account {address_book_entries[0].account_alias} was added\n"
+
+    await message.answer(message_text)
     await manager.switch_to(states.MainMenuStates.select_wallet)

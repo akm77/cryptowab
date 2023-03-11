@@ -48,7 +48,7 @@ class Account(TimestampMixin, Base):
 
     def __repr__(self) -> str:
         return (f"Account(id={self.address!r}, account_type={self.account_type_id!r}, "
-                f"trx_balance={self.native_balance!r}), token_balance={self.token_balance!r}")
+                f"native_balance={self.native_balance!r}), token_balance={self.token_balance!r}")
 
 
 class AddressBook(TimestampMixin, Base):
@@ -75,9 +75,10 @@ class AddressBookEntry(Base):
     address_book_id: Mapped[int] = mapped_column(ForeignKey("address_book.id",
                                                             ondelete="CASCADE",
                                                             onupdate="CASCADE"),
+                                                 nullable=False,
                                                  primary_key=True)
-    account_address: Mapped[str] = mapped_column(String(128), primary_key=True)
-    account_type_id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    account_address: Mapped[str] = mapped_column(String(128), nullable=False, primary_key=True)
+    account_type_id: Mapped[str] = mapped_column(String(16), nullable=False, primary_key=True)
 
     account_alias: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
     track_trx: Mapped[bool] = mapped_column(Boolean, server_default=expression.false())
