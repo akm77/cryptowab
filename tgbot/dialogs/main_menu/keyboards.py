@@ -1,9 +1,9 @@
 import operator
 
-from aiogram_dialog.widgets.kbd import ScrollingGroup, Select, Row, Button, SwitchTo
+from aiogram_dialog.widgets.kbd import ScrollingGroup, Select, Row, Button, SwitchTo, Checkbox
 from aiogram_dialog.widgets.text import Format
 
-from . import constants, onclick, states
+from . import constants, states
 
 
 def address_book_kbd(on_click, on_page_changed=None):
@@ -38,4 +38,15 @@ def edit_account_alias_kbd():
         SwitchTo(Format("Edit alias: {account_alias}"),
                  id=constants.MainMenu.EDIT_ACCOUNT_ALIAS_BUTTON,
                  state=states.MainMenuStates.enter_account_alias)
+    )
+
+
+def edit_entry_track_options_kbd():
+    return Row(
+        Checkbox(
+            Format("✓  Track {}"),
+            Format("Unchecked"),
+            id="check",
+            default=True,  # so it will be checked by default,
+            on_state_changed=None)
     )

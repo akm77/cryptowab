@@ -208,3 +208,16 @@ async def update_address_book(session: async_sessionmaker,
         result: Result = await session.execute(statement)
         await session.commit()
         return result.scalars().one_or_none()
+
+
+async def update_account(session: async_sessionmaker,
+                         address: str,
+                         account_type_id: str,
+                         values: dict) -> Optional[Account]:
+    statement = update(Account).where(Account.address == address, Account.account_type_id == account_type_id)
+    statement = statement.values(values)
+    statement = statement.returning(Account)
+    async with session() as session:
+        result: Result = await session.execute(statement)
+        await session.commit()
+        return result.scalars().one_or_none()
