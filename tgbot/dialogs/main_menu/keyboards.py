@@ -35,7 +35,7 @@ def select_transactions_kbd(on_click):
 
 def edit_account_alias_kbd():
     return Row(
-        SwitchTo(Format("Edit {account_alias}"),
+        SwitchTo(Format("Edit alias: {account_alias}"),
                  id=constants.MainMenu.EDIT_ACCOUNT_ALIAS_BUTTON,
                  state=states.MainMenuStates.enter_account_alias)
     )
