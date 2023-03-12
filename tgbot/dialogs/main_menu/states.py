@@ -2,6 +2,7 @@ from aiogram.fsm.state import StatesGroup, State
 
 
 class MainMenuStates(StatesGroup):
-    select_wallet = State()
-    edit_wallet = State()
-    enter_wallet_address = State()
+    select_ab_entry = State()
+    edit_ab_entry = State()
+    enter_account_address = State()
+    enter_account_alias = State()

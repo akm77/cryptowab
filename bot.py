@@ -7,12 +7,10 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
 from aiogram.fsm.strategy import FSMStrategy
-from aiohttp import ClientSession
 
 from tgbot.config import settings
 from tgbot.dialogs import setup_dialogs
 from tgbot.handlers.admin import admin_router
-from tgbot.handlers.echo import echo_router
 from tgbot.handlers.groups.track_bot_chat_member import bot_chat_member_router
 from tgbot.handlers.user import user_router
 from tgbot.middlewares.config import ConfigMiddleware
@@ -51,10 +49,9 @@ async def main():
                                          config.db_pass.get_secret_value(), config.db_host, config.db_echo)
     http_session = aiohttp.ClientSession()
     bot = Bot(token=config.bot_token.get_secret_value(), parse_mode='HTML')
-    dp = Dispatcher(storage=storage, fsm_strategy=FSMStrategy.CHAT)
+    dp = Dispatcher(storage=storage)
     dp["http_session"] = http_session
     dp.shutdown.register(on_shutdown)
-
     setup_dialogs(dp)
 
     for router in [

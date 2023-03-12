@@ -81,9 +81,11 @@ class AddressBookEntry(Base):
     account_type_id: Mapped[str] = mapped_column(String(16), nullable=False, primary_key=True)
 
     account_alias: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
-    track_native: Mapped[bool] = mapped_column(Boolean, server_default=expression.false())
-    track_token: Mapped[bool] = mapped_column(Boolean, server_default=expression.false())
-    schedule: Mapped[int] = mapped_column(server_default=text("10"))
+    track_native: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=expression.false())
+    native_threshold: Mapped[int] = mapped_column(nullable=False, server_default=text("10"))
+    track_token: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=expression.false())
+    token_threshold: Mapped[int] = mapped_column(nullable=False, server_default=text("10"))
+    schedule: Mapped[int] = mapped_column(nullable=False, server_default=text("10"))
 
     account: Mapped["Account"] = relationship()
 

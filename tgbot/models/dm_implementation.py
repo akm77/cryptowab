@@ -166,3 +166,45 @@ async def get_address_book_entries(session: async_sessionmaker,
     async with session() as session:
         result: Result = await session.execute(statement)
         return result.scalars().all()
+
+
+async def get_address_book_entry_from_db(session: async_sessionmaker,
+                                         address_book_id: int,
+                                         account_address: str,
+                                         account_type_id: str) -> Optional[AddressBookEntry]:
+    statement = select(AddressBookEntry).where(AddressBookEntry.address_book_id == address_book_id,
+                                               AddressBookEntry.account_address == account_address,
+                                               AddressBookEntry.account_type_id == account_type_id)
+    statement = statement.options(joinedload(AddressBookEntry.account,
+                                             innerjoin=True).joinedload(Account.account_type, innerjoin=True))
+    async with session() as session:
+        result: Result = await session.execute(statement)
+        return result.scalars().one_or_none()
+
+
+async def update_address_book_entry(session: async_sessionmaker,
+                                    address_book_id: int,
+                                    account_address: str,
+                                    account_type_id: str,
+                                    values: dict) -> Optional[AddressBookEntry]:
+    statement = update(AddressBookEntry).where(AddressBookEntry.address_book_id == address_book_id,
+                                               AddressBookEntry.account_address == account_address,
+                                               AddressBookEntry.account_type_id == account_type_id)
+    statement = statement.values(values)
+    statement = statement.returning(AddressBookEntry)
+    async with session() as session:
+        result: Result = await session.execute(statement)
+        await session.commit()
+        return result.scalars().one_or_none()
+
+
+async def update_address_book(session: async_sessionmaker,
+                              address_book_id: int,
+                              values: dict) -> Optional[AddressBook]:
+    statement = update(AddressBook).where(AddressBook.id == address_book_id)
+    statement = statement.values(values)
+    statement = statement.returning(AddressBook)
+    async with session() as session:
+        result: Result = await session.execute(statement)
+        await session.commit()
+        return result.scalars().one_or_none()
