@@ -1,9 +1,9 @@
 import operator
 
-from aiogram_dialog.widgets.kbd import ScrollingGroup, Select, Row, Button, SwitchTo, Checkbox
+from aiogram_dialog.widgets.kbd import ScrollingGroup, Select, Row, Button, SwitchTo, Checkbox, Counter, Group
 from aiogram_dialog.widgets.text import Format
 
-from . import constants, states
+from . import constants, states, events
 
 
 def address_book_kbd(on_click, on_page_changed=None):
@@ -42,11 +42,37 @@ def edit_account_alias_kbd():
 
 
 def edit_entry_track_options_kbd():
+    return Group(
+        Row(
+            Checkbox(
+                Format("✓  Track {account_type}"),
+                Format("Track {account_type}"),
+                id=constants.MainMenu.TRACK_TOKEN,
+                default=False,  # so it will be checked by default,
+                on_state_changed=events.on_track_changed),
+            SwitchTo(Format("Threshold: {token_threshold}"),
+                     id=constants.MainMenu.TOKEN_THRESHOLD,
+                     state=states.MainMenuStates.enter_token_threshold),
+            id=constants.MainMenu.TOKEN_OPTIONS
+        ),
+        Row(
+            Checkbox(
+                Format("✓  Track {native_token}"),
+                Format("Track {native_token}"),
+                id=constants.MainMenu.TRACK_NATIVE_TOKEN,
+                default=False,  # so it will be checked by default,
+                on_state_changed=events.on_track_changed),
+            SwitchTo(Format("Threshold: {native_threshold}"),
+                     id=constants.MainMenu.NATIVE_TOKEN_THRESHOLD,
+                     state=states.MainMenuStates.enter_native_threshold),
+            id=constants.MainMenu.NATIVE_TOKEN_OPTIONS
+        )
+    )
+
+
+def set_schedule_period_kbd():
     return Row(
-        Checkbox(
-            Format("✓  Track {}"),
-            Format("Unchecked"),
-            id="check",
-            default=True,  # so it will be checked by default,
-            on_state_changed=None)
+        SwitchTo(Format("Schedule: one time in {schedule} minute(s)"),
+                 id=constants.MainMenu.SET_SCHEDULE_PERIOD_BUTTON,
+                 state=states.MainMenuStates.enter_schedule_period)
     )

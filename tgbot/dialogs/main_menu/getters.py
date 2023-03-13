@@ -71,6 +71,7 @@ async def get_address_book_entry(dialog_manager: DialogManager, **middleware_dat
                                                  address_book_id=address_book_id,
                                                  account_address=account_address,
                                                  account_type_id=account_type)
+    ctx.dialog_data.update(account_type_unit=entry.account.account_type.unit)
     return {"started_by": started_by,
             "account_alias": entry.account_alias,
             "account_address": entry.account_address,
@@ -81,7 +82,9 @@ async def get_address_book_entry(dialog_manager: DialogManager, **middleware_dat
             "token_balance": format_decimal(value_to_decimal(
                 entry.account.token_balance / entry.account.account_type.unit), pre=2),
             "track_token": "✓" if entry.track_token else "☐",
-            "token_threshold": entry.token_threshold,
+            "token_threshold": format_decimal(value_to_decimal(
+                entry.token_threshold / entry.account.account_type.unit), pre=6),
             "track_native": "✓" if entry.track_native else "☐",
-            "native_threshold": entry.native_threshold,
+            "native_threshold": format_decimal(value_to_decimal(
+                entry.native_threshold / entry.account.account_type.unit), pre=6),
             "schedule": entry.schedule}

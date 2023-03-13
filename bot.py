@@ -40,8 +40,7 @@ async def main():
     config = settings
     if config.use_redis:
         storage = RedisStorage.from_url(config.redis_dsn, key_builder=DefaultKeyBuilder(with_bot_id=True,
-                                                                                        with_destiny=True),
-                                        )
+                                                                                        with_destiny=True))
     else:
         storage = MemoryStorage()
 

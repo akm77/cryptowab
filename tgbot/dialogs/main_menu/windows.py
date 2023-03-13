@@ -5,7 +5,6 @@ from aiogram_dialog.widgets.kbd import Cancel, Row, SwitchTo
 from aiogram_dialog.widgets.text import Const, Format
 
 from . import keyboards, states, onclick, constants, getters, events
-from .keyboards import select_transactions_kbd, edit_account_alias_kbd
 
 
 def main_menu_window():
@@ -21,25 +20,13 @@ def main_menu_window():
     )
 
 
-def enter_account_address_window():
+def enter_value_window(text: str, handler=None, state=None, getter=None):
     return Window(
-        Format("Dialog started by {started_by}\n"
-               "👇 Enter account address 👇"),
-        MessageInput(events.account_address_handler,
+        Format(text),
+        MessageInput(handler,
                      content_types=[ContentType.TEXT]),
-        state=states.MainMenuStates.enter_account_address,
-        getter=getters.get_started_by
-    )
-
-
-def enter_account_alias_window():
-    return Window(
-        Format("Dialog started by {started_by}\n"
-               "👇 Enter account alias (Short human readable name) 👇"),
-        MessageInput(events.account_alias_handler,
-                     content_types=[ContentType.TEXT]),
-        state=states.MainMenuStates.enter_account_alias,
-        getter=getters.get_started_by
+        state=state,
+        getter=getter
     )
 
 
@@ -53,14 +40,16 @@ def address_book_entry_window():
                "{account_type}: {token_balance}\n"
                "====================\n"
                "Track {account_type}: {track_token}\n"
-               "Threshold: {token_threshold}\n"
+               "Threshold: {token_threshold} {account_type}\n"
                "====================\n"
                "Track {native_token}: {track_native}\n"
-               "Threshold: {native_threshold}\n"
+               "Threshold: {native_threshold} {native_token}\n"
                "====================\n"
                "Schedule: one time in {schedule} minute(s)"),
-        select_transactions_kbd(on_click=onclick.on_click_show_trns),
-        edit_account_alias_kbd(),
+        keyboards.select_transactions_kbd(on_click=onclick.on_click_show_trns),
+        keyboards.edit_account_alias_kbd(),
+        keyboards.edit_entry_track_options_kbd(),
+        keyboards.set_schedule_period_kbd(),
         SwitchTo(Const("<<"),
                  id=constants.MainMenu.BACK_TO_ACCOUNTS,
                  state=states.MainMenuStates.select_ab_entry),
