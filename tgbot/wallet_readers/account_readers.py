@@ -224,7 +224,7 @@ class TronAccountReader(UrlReader):
                 if owner_address == self.__address else
                 AccountTransaction(address=owner_address, amount=amount, timestamp=timestamp))
 
-    async def get_native_transactions(self):
+    async def get_native_transactions(self) -> Optional[Generator[AccountTransaction, Any, None]]:
         self.url = self.__base_url + self.__address + "/transactions"
         params = self.params
         headers = self.headers
@@ -265,7 +265,7 @@ class TronAccountReader(UrlReader):
                                             timestamp=datetime.datetime.fromtimestamp(
                                                 trn.get('block_timestamp') / 1000.0,
                                                 datetime.timezone.utc))
-                    for trn in data if int(trn["value"]))
+                    for trn in data if abs(int(trn["value"])))
 
 
 ETHERSCAN_API_URL: str = "https://api.etherscan.io/api"
@@ -396,7 +396,7 @@ class EthereumAccountReader(UrlReader):
                               native_balance=int(native_balance_raw_data.get("result")),
                               token_balance=int(token_balance_raw_data.get("result")), )
 
-    def __process_transaction(self, data):
+    def __process_transaction(self, data) -> Optional[Generator[AccountTransaction, Any, None]]:
         return (AccountTransaction(address=trn["to"],
                                    amount=-int(trn["value"]),
                                    timestamp=datetime.datetime.fromtimestamp(int(trn.get('timeStamp')),
@@ -409,7 +409,7 @@ class EthereumAccountReader(UrlReader):
                                             datetime.timezone.utc))
                 for trn in data if int(trn["value"]))
 
-    async def get_native_transactions(self):
+    async def get_native_transactions(self) -> Optional[Generator[AccountTransaction, Any, None]]:
         self.params = self.__native_transactions_params
         native_transactions_raw_data = await self.get_raw_data()
         if native_transactions_raw_data and native_transactions_raw_data.get("message") != "OK":
