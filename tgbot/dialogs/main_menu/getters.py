@@ -22,8 +22,8 @@ async def get_address_book(dialog_manager: DialogManager, **middleware_data):
                                                           address_book_id=event.chat.id)
     address_book_title = event.from_user.full_name if event.chat.type == "private" else event.chat.title
     items = [(f"{entry.account_alias} | "
-              f"{format_decimal(value_to_decimal(entry.account.token_balance / entry.account.account_type.unit), pre=2)} | "
-              f"{format_decimal(value_to_decimal(entry.account.native_balance / entry.account.account_type.unit), pre=2)}",
+              f"{format_decimal(value_to_decimal(entry.account.token_balance / entry.account.account_type.native_unit), pre=2)} | "
+              f"{format_decimal(value_to_decimal(entry.account.native_balance / entry.account.account_type.native_unit), pre=2)}",
               f"{entry.account_address}_{entry.account_type_id}")
              for entry in address_book_entries if address_book_entries]
 
@@ -97,32 +97,32 @@ async def get_address_book_entry(dialog_manager: DialogManager, **middleware_dat
                                                  address_book_id=address_book_id,
                                                  account_address=account_address,
                                                  account_type_id=account_type)
-
+    # entry.account.account_type.unit
     native_transactions_text = html.pre("\n".join(f"{trn.timestamp: %d.%m.%y %H:%M} "
                                                   f"{trn.address[:4]}...{trn.address[-4:]} "
-                                                  f"{format_decimal(value_to_decimal(trn.amount / entry.account.account_type.unit), pre=6)}"
+                                                  f"{format_decimal(value_to_decimal(trn.amount / entry.account.account_type.native_unit), pre=6)}"
                                                   for trn in list(native_transactions) if native_transactions))
     token_transactions_text = html.pre("\n".join(f"{trn.timestamp: %d.%m.%y %H:%M} "
                                                  f"{trn.address[:4]}...{trn.address[-4:]} "
-                                                 f"{format_decimal(value_to_decimal(trn.amount / entry.account.account_type.unit), pre=2)}"
+                                                 f"{format_decimal(value_to_decimal(trn.amount / entry.account.account_type.token_unit), pre=2)}"
                                                  for trn in list(token_transactions) if token_transactions))
     ctx.dialog_data.update(native_transactions_text=native_transactions_text)
     ctx.dialog_data.update(token_transactions_text=token_transactions_text)
-    ctx.dialog_data.update(account_type_unit=entry.account.account_type.unit)
+    ctx.dialog_data.update(account_type_unit=entry.account.account_type.native_unit)
 
     return {"started_by": started_by,
             "account_alias": entry.account_alias,
             "account_address": entry.account_address,
             "native_token": entry.account.account_type.native_token,
             "native_balance": format_decimal(value_to_decimal(
-                entry.account.native_balance / entry.account.account_type.unit), pre=2),
+                entry.account.native_balance / entry.account.account_type.native_unit), pre=2),
             "account_type": entry.account_type_id,
             "token_balance": format_decimal(value_to_decimal(
-                entry.account.token_balance / entry.account.account_type.unit), pre=2),
+                entry.account.token_balance / entry.account.account_type.native_unit), pre=2),
             "track_token": "✓" if entry.track_token else "☐",
             "token_threshold": format_decimal(value_to_decimal(
-                entry.token_threshold / entry.account.account_type.unit), pre=6),
+                entry.token_threshold / entry.account.account_type.native_unit), pre=6),
             "track_native": "✓" if entry.track_native else "☐",
             "native_threshold": format_decimal(value_to_decimal(
-                entry.native_threshold / entry.account.account_type.unit), pre=6),
+                entry.native_threshold / entry.account.account_type.native_unit), pre=6),
             "schedule": entry.schedule}

@@ -16,11 +16,12 @@ class AccountType(Base):
     native_token: Mapped[str] = mapped_column(String(16),
                                               CheckConstraint("native_token IN ('BNB', 'TRX', 'ETH')",
                                                               name="check_native_token"))
-    unit: Mapped[int] = mapped_column(VeryBigInt, server_default=text("1000000"))
+    native_unit: Mapped[int] = mapped_column(VeryBigInt, server_default=text("1000000"))
+    token_unit: Mapped[int] = mapped_column(VeryBigInt, server_default=text("1000000"))
     token_contract: Mapped[str] = mapped_column(String(128), nullable=False)
 
     def __repr__(self) -> str:
-        return f"AccountType(id={self.id!r}, unit={self.unit!r})"
+        return f"AccountType(id={self.id!r}, unit={self.native_unit!r})"
 
 
 class Account(TimestampMixin, Base):
