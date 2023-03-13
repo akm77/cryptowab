@@ -27,8 +27,9 @@ async def on_click_show_trns(callback: CallbackQuery,
     message_text = (ctx.dialog_data.get("token_transactions_text")
                     if button.widget_id == constants.MainMenu.SHOW_TOKEN_TRNS_BUTTON
                     else ctx.dialog_data.get("native_transactions_text"))
-    await callback.message.answer(message_text)
-    await manager.done()
-    await manager.start(states.MainMenuStates.select_ab_entry,
-                        data={"started_by": callback.message.from_user.mention_html()},
-                        mode=StartMode.RESET_STACK)
+    if len(message_text):
+        await callback.message.answer(message_text)
+        await manager.done()
+        await manager.start(states.MainMenuStates.select_ab_entry,
+                            data={"started_by": callback.message.from_user.mention_html()},
+                            mode=StartMode.RESET_STACK)
