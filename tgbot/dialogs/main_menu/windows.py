@@ -44,12 +44,13 @@ def address_book_entry_window():
                "====================\n"
                "Track {native_token}: {track_native}\n"
                "Threshold: {native_threshold} {native_token}\n"
-               "====================\n"
-               "Schedule: one time in {schedule} minute(s)"),
+               # "====================\n"
+               # "Schedule: one time in {schedule} minute(s)"
+               ),
         keyboards.select_transactions_kbd(on_click=onclick.on_click_show_trns),
         keyboards.edit_account_alias_kbd(),
         keyboards.edit_entry_track_options_kbd(),
-        keyboards.set_schedule_period_kbd(),
+        # keyboards.set_schedule_period_kbd(),
         SwitchTo(Const("<<"),
                  id=constants.MainMenu.BACK_TO_ACCOUNTS,
                  state=states.MainMenuStates.select_ab_entry),

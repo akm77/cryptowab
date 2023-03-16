@@ -19,15 +19,16 @@ class UrlReaderMode(IntEnum):
 
 
 @dataclass
-class AccountBalance:
+class APIAccountBalance:
     address: str
     native_balance: int
     token_balance: int
 
 
 @dataclass
-class AccountTransaction:
-    address: str
+class APIAccountTransaction:
+    from_address: str
+    to_address: str
     amount: int
     timestamp: datetime.datetime
 
@@ -195,7 +196,7 @@ class TronAccountReader(UrlReader):
         base58_str = base58.b58encode_check(bytes_str)
         return base58_str.decode("UTF-8")
 
-    async def get_account_data(self) -> Optional[AccountBalance]:
+    async def get_account_data(self) -> Optional[APIAccountBalance]:
         self.url = self.__base_url + self.__address
         raw_data = await self.get_raw_data()
         result = raw_data.get("success") if raw_data else None
@@ -207,29 +208,32 @@ class TronAccountReader(UrlReader):
             trc20 = data.get("trc20")
             trc20_usdt_balance = int(next((item.get(self.__usdt_contract, 0) for item in trc20
                                            if item.get(self.__usdt_contract)), 0)) if trc20 else 0
-            return AccountBalance(address=self.__address,
-                                  native_balance=trx_balance,
-                                  token_balance=trc20_usdt_balance)
+            return APIAccountBalance(address=self.__address,
+                                     native_balance=trx_balance,
+                                     token_balance=trc20_usdt_balance)
 
-    def __process_native_transaction(self, trn) -> Optional[AccountTransaction]:
+    def __process_native_transaction(self, trn) -> Optional[APIAccountTransaction]:
         contract = next((item for item in trn.get("raw_data").get("contract")), None)
         if not contract or contract.get("type") != "TransferContract":
             return
+        address = self.__address
         amount = contract.get("parameter").get("value").get("amount")
         owner_address = TronAccountReader.hex_to_base58(contract.get("parameter").get("value").get("owner_address"))
         to_address = TronAccountReader.hex_to_base58(contract.get("parameter").get("value").get("to_address"))
         timestamp = datetime.datetime.fromtimestamp(trn.get("block_timestamp") / 1000.0,
                                                     datetime.timezone.utc)
-        return (AccountTransaction(address=to_address, amount=-amount, timestamp=timestamp)
-                if owner_address == self.__address else
-                AccountTransaction(address=owner_address, amount=amount, timestamp=timestamp))
+        return APIAccountTransaction(from_address=owner_address,
+                                     to_address=to_address,
+                                     amount=amount,
+                                     timestamp=timestamp)
 
-    async def get_native_transactions(self) -> Optional[Generator[AccountTransaction, Any, None]]:
+    async def get_native_transactions(self) -> Optional[Generator[APIAccountTransaction, Any, None]]:
         self.url = self.__base_url + self.__address + "/transactions"
         params = self.params
         headers = self.headers
         self.params["only_confirmed"] = "true"
         self.params["search_internal"] = "false"
+        self.params["limit"] = 200
         try:
             raw_data = await self.get_raw_data()
         finally:
@@ -241,12 +245,13 @@ class TronAccountReader(UrlReader):
             data = raw_data.get("data")
             return (record for trn in data if (record := self.__process_native_transaction(trn)))
 
-    async def get_token_transactions(self) -> Optional[Generator[AccountTransaction, Any, None]]:
+    async def get_token_transactions(self) -> Optional[Generator[APIAccountTransaction, Any, None]]:
         self.url = self.__base_url + self.__address + "/transactions/trc20"
         params = self.params
         headers = self.headers
         self.params["contract_address"] = self.__usdt_contract
         self.params["only_confirmed"] = "true"
+        self.params["limit"] = 200
         try:
             raw_data = await self.get_raw_data()
         finally:
@@ -255,16 +260,11 @@ class TronAccountReader(UrlReader):
         result = raw_data.get("success") if raw_data else None
         if result:
             data = raw_data.get("data")
-            return (AccountTransaction(address=trn["to"],
-                                       amount=-int(trn["value"]),
-                                       timestamp=datetime.datetime.fromtimestamp(trn.get('block_timestamp') / 1000.0,
-                                                                                 datetime.timezone.utc))
-                    if self.__address == trn["from"]
-                    else AccountTransaction(address=trn["from"],
-                                            amount=int(trn["value"]),
-                                            timestamp=datetime.datetime.fromtimestamp(
-                                                trn.get('block_timestamp') / 1000.0,
-                                                datetime.timezone.utc))
+            return (APIAccountTransaction(from_address=trn["from"],
+                                          to_address=trn["to"],
+                                          amount=int(trn["value"]),
+                                          timestamp=datetime.datetime.fromtimestamp(trn.get('block_timestamp') / 1000.0,
+                                                                                    datetime.timezone.utc))
                     for trn in data if abs(int(trn["value"])))
 
 
@@ -382,7 +382,7 @@ class EthereumAccountReader(UrlReader):
         self.__token_balance_params["contractaddress"] = usdt_contract
         self.__token_transactions_params["contractaddress"] = usdt_contract
 
-    async def get_account_data(self) -> Optional[AccountBalance]:
+    async def get_account_data(self) -> Optional[APIAccountBalance]:
         self.params = self.__native_balance_params
         native_balance_raw_data = await self.get_raw_data()
         if native_balance_raw_data and native_balance_raw_data.get("message") != "OK":
@@ -392,31 +392,27 @@ class EthereumAccountReader(UrlReader):
         token_balance_raw_data = await self.get_raw_data()
         if token_balance_raw_data and token_balance_raw_data.get("message") != "OK":
             return
-        return AccountBalance(address=self.__address,
-                              native_balance=int(native_balance_raw_data.get("result")),
-                              token_balance=int(token_balance_raw_data.get("result")), )
+        return APIAccountBalance(address=self.__address,
+                                 native_balance=int(native_balance_raw_data.get("result")),
+                                 token_balance=int(token_balance_raw_data.get("result")), )
 
-    def __process_transaction(self, data) -> Optional[Generator[AccountTransaction, Any, None]]:
-        return (AccountTransaction(address=trn["to"],
-                                   amount=-int(trn["value"]),
-                                   timestamp=datetime.datetime.fromtimestamp(int(trn.get('timeStamp')),
-                                                                             datetime.timezone.utc))
-                if self.__address.lower() == trn["from"].lower()
-                else AccountTransaction(address=trn["from"],
-                                        amount=int(trn["value"]),
-                                        timestamp=datetime.datetime.fromtimestamp(
-                                            int(trn.get('timeStamp')),
-                                            datetime.timezone.utc))
-                for trn in data if int(trn["value"]))
+    def __process_transaction(self, data) -> Optional[Generator[APIAccountTransaction, Any, None]]:
+        address = self.__address
+        return (APIAccountTransaction(from_address=trn["from"],
+                                      to_address=trn["to"],
+                                      amount=int(trn["value"]),
+                                      timestamp=datetime.datetime.fromtimestamp(int(trn.get('timeStamp')),
+                                                                                datetime.timezone.utc))
+                for trn in data if abs(int(trn["value"])))
 
-    async def get_native_transactions(self) -> Optional[Generator[AccountTransaction, Any, None]]:
+    async def get_native_transactions(self) -> Optional[Generator[APIAccountTransaction, Any, None]]:
         self.params = self.__native_transactions_params
         native_transactions_raw_data = await self.get_raw_data()
         if native_transactions_raw_data and native_transactions_raw_data.get("message") != "OK":
             return
         return self.__process_transaction(native_transactions_raw_data.get("result", []))
 
-    async def get_token_transactions(self) -> Optional[Generator[AccountTransaction, Any, None]]:
+    async def get_token_transactions(self) -> Optional[Generator[APIAccountTransaction, Any, None]]:
         self.params = self.__token_transactions_params
         token_transactions_raw_data = await self.get_raw_data()
         if token_transactions_raw_data and token_transactions_raw_data.get("message") != "OK":

@@ -1,14 +1,11 @@
 import logging
 
-from aiogram import html
 from aiogram.types import Message
 from aiogram_dialog import DialogManager
 
-from tgbot.models.dm_implementation import get_address_book_entries, get_address_book_entry_from_db, update_account
+from tgbot.models.dm_implementation import get_address_book_entries, get_address_book_entry_from_db, sync_db_account
 from tgbot.utils.decimals import value_to_decimal, format_decimal
-from tgbot.utils.net_accounts import get_tron_account_from_net, get_bep20_account_from_net, get_erc20_account_from_net, \
-    get_tron_native_trns_from_net, get_tron_token_trns_from_net, get_bep20_native_trns_from_net, \
-    get_bep20_token_trns_from_net, get_erc20_native_trns_from_net, get_erc20_token_trns_from_net
+from tgbot.utils.net_accounts import get_tron_account_from_net, get_bep20_account_from_net, get_erc20_account_from_net
 
 logger = logging.getLogger(__name__)
 
@@ -56,56 +53,27 @@ async def get_address_book_entry(dialog_manager: DialogManager, **middleware_dat
             account = await get_tron_account_from_net(http_session=http_session,
                                                       address=account_address,
                                                       tron_api_keys=api_keys.get("TRC20"))
-            native_transactions = await get_tron_native_trns_from_net(http_session=http_session,
-                                                                      address=account_address,
-                                                                      tron_api_keys=api_keys.get("TRC20"))
-            token_transactions = await get_tron_token_trns_from_net(http_session=http_session,
-                                                                    address=account_address,
-                                                                    tron_api_keys=api_keys.get("TRC20"))
         case "BEP20":
             account = await get_bep20_account_from_net(http_session=http_session,
                                                        address=account_address, bep20_api_keys=api_keys.get("BEP20"))
-            native_transactions = await get_bep20_native_trns_from_net(http_session=http_session,
-                                                                       address=account_address,
-                                                                       bep20_api_keys=api_keys.get("BEP20"))
-            token_transactions = await get_bep20_token_trns_from_net(http_session=http_session,
-                                                                     address=account_address,
-                                                                     bep20_api_keys=api_keys.get("BEP20"))
         case "ERC20":
             account = await get_erc20_account_from_net(http_session=http_session,
                                                        address=account_address, erc20_api_keys=api_keys.get("ERC20"))
-            native_transactions = await get_erc20_native_trns_from_net(http_session=http_session,
-                                                                       address=account_address,
-                                                                       erc20_api_keys=api_keys.get("ERC20"))
-            token_transactions = await get_erc20_token_trns_from_net(http_session=http_session,
-                                                                     address=account_address,
-                                                                     erc20_api_keys=api_keys.get("ERC20"))
-
         case _:
             account = None
             native_transactions = None
             token_transactions = None
 
     if account:
-        await update_account(session=session,
-                             address=account.address,
-                             account_type_id=account.account_type_id,
-                             values={"native_balance": account.native_balance,
-                                     "token_balance": account.token_balance})
+        await sync_db_account(session=session, http_session=http_session, account=account, api_keys=api_keys)
 
     entry = await get_address_book_entry_from_db(session=session,
                                                  address_book_id=address_book_id,
                                                  account_address=account_address,
                                                  account_type_id=account_type)
     # entry.account.account_type.unit
-    native_transactions_text = html.pre("\n".join(f"{trn.timestamp: %d.%m.%y %H:%M} "
-                                                  f"{trn.address[:4]}...{trn.address[-4:]} "
-                                                  f"{format_decimal(value_to_decimal(trn.amount / entry.account.account_type.native_unit), pre=6)}"
-                                                  for trn in list(native_transactions) if native_transactions))
-    token_transactions_text = html.pre("\n".join(f"{trn.timestamp: %d.%m.%y %H:%M} "
-                                                 f"{trn.address[:4]}...{trn.address[-4:]} "
-                                                 f"{format_decimal(value_to_decimal(trn.amount / entry.account.account_type.token_unit), pre=2)}"
-                                                 for trn in list(token_transactions) if token_transactions))
+    native_transactions_text = "native_transactions_text"
+    token_transactions_text = "token_transactions_text"
     ctx.dialog_data.update(native_transactions_text=native_transactions_text)
     ctx.dialog_data.update(token_transactions_text=token_transactions_text)
     ctx.dialog_data.update(account_type_unit=entry.account.account_type.native_unit)

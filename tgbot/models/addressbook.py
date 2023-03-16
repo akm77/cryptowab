@@ -1,6 +1,8 @@
+from datetime import datetime
 from typing import List
 
-from sqlalchemy import text, Boolean, String, ForeignKey, CheckConstraint, ForeignKeyConstraint
+from sqlalchemy import text, Boolean, String, ForeignKey, CheckConstraint, ForeignKeyConstraint, DateTime, \
+    UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import expression
 
@@ -48,8 +50,80 @@ class Account(TimestampMixin, Base):
         return self.address[:3] + "..." + self.address[-3:]
 
     def __repr__(self) -> str:
-        return (f"Account(id={self.address!r}, account_type={self.account_type_id!r}, "
-                f"native_balance={self.native_balance!r}), token_balance={self.token_balance!r}")
+        return (f"Account(id={self.address!r}, account type={self.account_type_id!r}, "
+                f"native balance={self.native_balance!r}), token balance={self.token_balance!r}")
+
+
+class AccountStatement(Base):
+    __tablename__ = "account_statement"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["account_address", "account_type_id"], ["account.address", "account.account_type_id"],
+            ondelete="CASCADE",
+            onupdate="CASCADE"
+        ),
+    )
+
+    account_address: Mapped[str] = mapped_column(String(128), nullable=False, primary_key=True)
+    account_type_id: Mapped[str] = mapped_column(String(16), nullable=False, primary_key=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(True), nullable=False, primary_key=True)
+    native_balance: Mapped[int] = mapped_column(VeryBigInt, server_default=text("0"))
+    token_balance: Mapped[int] = mapped_column(VeryBigInt, server_default=text("0"))
+    account: Mapped["Account"] = relationship()
+
+    def __repr__(self) -> str:
+        return (f"Account(id={self.account_address!r}, "
+                f"account type={self.account_type_id!r}, "
+                f"timestamp={self.timestamp!r}"
+                f"native balance={self.native_balance!r}), "
+                f"token balance={self.token_balance!r}")
+
+
+class AccountTransaction(Base):
+    __tablename__ = "account_tx"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["from_address", "from_account_type"], ["account.address", "account.account_type_id"],
+            ondelete="CASCADE",
+            onupdate="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ["to_address", "to_account_type"], ["account.address", "account.account_type_id"],
+            ondelete="CASCADE",
+            onupdate="CASCADE"
+        ),
+    )
+    tx_type: Mapped[str] = mapped_column(String(10),
+                                         CheckConstraint("tx_type IN ('native', 'token')",
+                                                         name="check_tx_type"),
+                                         nullable=False, primary_key=True)
+    from_address: Mapped[str] = mapped_column(String(128), nullable=False, primary_key=True)
+    from_account_type: Mapped[str] = mapped_column(String(16), nullable=False, primary_key=True)
+    to_address: Mapped[str] = mapped_column(String(128), nullable=False, primary_key=True)
+    to_account_type: Mapped[str] = mapped_column(String(16), nullable=False, primary_key=True)
+    tx_timestamp: Mapped[datetime] = mapped_column(DateTime(True), nullable=False, primary_key=True)
+    tx_amount: Mapped[int] = mapped_column(VeryBigInt, server_default=text("0"))
+
+    from_account: Mapped["Account"] = relationship(foreign_keys=[from_address, from_account_type])
+    to_account: Mapped["Account"] = relationship(foreign_keys=[to_address, to_account_type])
+
+    def __init__(self, tx_type, account_type, from_address, to_address, tx_timestamp, tx_amount):
+        super().__init__()
+        self.tx_type = tx_type
+        self.from_address = from_address
+        self.from_account_type = account_type
+        self.to_address = to_address
+        self.to_account_type = account_type
+        self.tx_timestamp = tx_timestamp
+        self.tx_amount = tx_amount
+
+    def __repr__(self) -> str:
+        return (f"Tx type(tx_type={self.tx_type!r}, "
+                f"account type={self.from_account_type!r}, "
+                f"from address={self.from_address!r}), "
+                f"to address={self.to_address!r}, "
+                f"timestamp={self.tx_timestamp!r}, "
+                f"amount={self.tx_amount!r}")
 
 
 class AddressBook(TimestampMixin, Base):
@@ -72,6 +146,8 @@ class AddressBookEntry(Base):
             ondelete="RESTRICT",
             onupdate="CASCADE"
         ),
+        UniqueConstraint("address_book_id", "account_address", "account_alias",
+                         name="uq_address_book_entry_address_book_id_account_address_account_alias")
     )
     address_book_id: Mapped[int] = mapped_column(ForeignKey("address_book.id",
                                                             ondelete="CASCADE",
@@ -81,7 +157,7 @@ class AddressBookEntry(Base):
     account_address: Mapped[str] = mapped_column(String(128), nullable=False, primary_key=True)
     account_type_id: Mapped[str] = mapped_column(String(16), nullable=False, primary_key=True)
 
-    account_alias: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    account_alias: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     track_native: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=expression.false())
     native_threshold: Mapped[int] = mapped_column(nullable=False, server_default=text("10"))
     track_token: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=expression.false())
