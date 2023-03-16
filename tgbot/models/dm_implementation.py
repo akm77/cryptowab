@@ -6,7 +6,7 @@ from typing import Optional, List, Any, Sequence, Generator
 
 from aiogram.types import Message
 from aiohttp import ClientSession
-from sqlalchemy import update, Result, select, Row, RowMapping, func, Select
+from sqlalchemy import update, Result, select, Row, RowMapping, func, Select, delete
 from sqlalchemy.dialects.sqlite import insert, Insert
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import joinedload
@@ -191,6 +191,20 @@ async def update_address_book_entry(session: async_sessionmaker,
                                                AddressBookEntry.account_address == account_address,
                                                AddressBookEntry.account_type_id == account_type_id)
     statement = statement.values(values)
+    statement = statement.returning(AddressBookEntry)
+    async with session() as session:
+        result: Result = await session.execute(statement)
+        await session.commit()
+        return result.scalars().one_or_none()
+
+
+async def delete_entry(session: async_sessionmaker,
+                       address_book_id: int,
+                       account_address: str,
+                       account_type_id: str) -> Optional[AddressBookEntry]:
+    statement = delete(AddressBookEntry).where(AddressBookEntry.address_book_id == address_book_id,
+                                               AddressBookEntry.account_address == account_address,
+                                               AddressBookEntry.account_type_id == account_type_id)
     statement = statement.returning(AddressBookEntry)
     async with session() as session:
         result: Result = await session.execute(statement)

@@ -17,6 +17,7 @@ class MainMenu(str, Enum):
     TOKEN_THRESHOLD = "mm13"
     TOKEN_OPTIONS = "mm14"
     SET_SCHEDULE_PERIOD_BUTTON = "mm15"
+    DELETE_ENTRY_BUTTON = "mm16"
 
     def __str__(self) -> str:
         return str.__str__(self)

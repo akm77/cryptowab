@@ -51,6 +51,7 @@ def address_book_entry_window():
         keyboards.edit_account_alias_kbd(),
         keyboards.edit_entry_track_options_kbd(),
         # keyboards.set_schedule_period_kbd(),
+        keyboards.delete_entry_kbd(),
         SwitchTo(Const("<<"),
                  id=constants.MainMenu.BACK_TO_ACCOUNTS,
                  state=states.MainMenuStates.select_ab_entry),

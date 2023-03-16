@@ -3,7 +3,7 @@ import operator
 from aiogram_dialog.widgets.kbd import ScrollingGroup, Select, Row, Button, SwitchTo, Checkbox, Counter, Group
 from aiogram_dialog.widgets.text import Format
 
-from . import constants, states, events
+from . import constants, states, events, onclick
 
 
 def address_book_kbd(on_click, on_page_changed=None):
@@ -38,6 +38,14 @@ def edit_account_alias_kbd():
         SwitchTo(Format("Edit alias: {account_alias}"),
                  id=constants.MainMenu.EDIT_ACCOUNT_ALIAS_BUTTON,
                  state=states.MainMenuStates.enter_account_alias)
+    )
+
+
+def delete_entry_kbd():
+    return Row(
+        Button(Format("❌ Delete {account_alias} ‼️️"),
+               id=constants.MainMenu.DELETE_ENTRY_BUTTON,
+               on_click=onclick.on_click_delete_entry)
     )
 
 
