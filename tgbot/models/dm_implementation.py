@@ -114,7 +114,7 @@ async def compose_address_book_entries(session: async_sessionmaker,
     address_book_entry_values = [{"address_book_id": address_book_id,
                                   "account_address": account.address,
                                   "account_type_id": account.account_type_id,
-                                  "account_alias": f"{address_book_title} "
+                                  "account_alias": f"_{address_book_title} "
                                                    f"{account.account_type_id} "
                                                    f"{account.short_address}"} for account in
                                  accounts]
