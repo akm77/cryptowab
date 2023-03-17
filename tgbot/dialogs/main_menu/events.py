@@ -7,7 +7,7 @@ from aiogram_dialog.widgets.input import MessageInput
 from aiogram_dialog.widgets.kbd import Checkbox, Counter
 
 from . import states, constants
-from ...models.dm_implementation import check_address_book_entry, ensure_persist_at_db, update_address_book_entry, \
+from ...models.db_commands import check_address_book_entry, ensure_persist_at_db, update_address_book_entry, \
     update_address_book
 from ...utils.decimals import check_digit_value
 from ...utils.net_accounts import ensure_account_at_net

@@ -5,7 +5,7 @@ from aiogram import Router, types, F, html, Bot
 from aiogram.filters import ChatMemberUpdatedFilter, JOIN_TRANSITION, LEAVE_TRANSITION
 from cachetools import TTLCache
 
-from tgbot.models.dm_implementation import update_address_book_id, read_address_book_by_id, upsert_address_book
+from tgbot.models.db_commands import update_address_book_id, read_address_book_by_id, upsert_address_book
 from tgbot.services import broadcaster
 
 """

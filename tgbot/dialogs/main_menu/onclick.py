@@ -4,7 +4,7 @@ from aiogram_dialog.api.internal import Widget
 from aiogram_dialog.widgets.kbd import Button
 
 from . import states, constants
-from ...models.dm_implementation import delete_entry
+from ...models.db_commands import delete_entry
 
 
 async def on_select_entry(callback: CallbackQuery,

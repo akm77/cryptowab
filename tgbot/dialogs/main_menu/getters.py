@@ -3,9 +3,11 @@ import logging
 from aiogram.types import Message
 from aiogram_dialog import DialogManager
 
-from tgbot.models.dm_implementation import get_address_book_entries, get_address_book_entry_from_db, sync_db_account
+from tgbot.models.db_commands import get_address_book_entries, get_address_book_entry_from_db, sync_db_account, \
+    read_account
 from tgbot.utils.decimals import value_to_decimal, format_decimal
-from tgbot.utils.net_accounts import get_tron_account_from_net, get_bep20_account_from_net, get_erc20_account_from_net
+from tgbot.utils.net_accounts import get_tron_account_from_net, get_bep20_account_from_net, get_erc20_account_from_net, \
+    get_native_trns_from_net, get_token_trns_from_net
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +67,21 @@ async def get_address_book_entry(dialog_manager: DialogManager, **middleware_dat
             token_transactions = None
 
     if account:
-        await sync_db_account(session=session, http_session=http_session, account=account, api_keys=api_keys)
+        db_account = await read_account(session=session, address=account.address,
+                                        account_type_id=account.account_type_id)
+        native_tx = await get_native_trns_from_net(http_session=http_session,
+                                                   account=account,
+                                                   api_keys=api_keys) if not db_account or (
+                db_account.native_balance != account.native_balance) else None
+        token_tx = await get_token_trns_from_net(http_session=http_session,
+                                                 account=account,
+                                                 api_keys=api_keys) if not db_account or (
+                db_account.token_balance != account.token_balance) else None
+        await sync_db_account(session=session,
+                              db_account=db_account,
+                              net_account=account,
+                              tx={"token": token_tx,
+                                  "native": native_tx})
 
     entry = await get_address_book_entry_from_db(session=session,
                                                  address_book_id=address_book_id,

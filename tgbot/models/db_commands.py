@@ -284,64 +284,53 @@ def get_account_addresses_from_tx(account_tx: List[APIAccountTransaction],
 
 
 async def sync_db_account(session: async_sessionmaker,
-                          http_session: ClientSession,
-                          account: Account, api_keys: dict) -> Optional[Account]:
+                          db_account: Account,
+                          net_account: Account,
+                          tx: dict) -> Optional[Account]:
     op_timestamp = datetime.datetime.now()
-    db_account = await read_account(session=session, address=account.address, account_type_id=account.account_type_id)
     last_account_statement = await get_last_account_statement(session=session,
-                                                              address=account.address,
-                                                              account_type_id=account.account_type_id)
+                                                              address=net_account.address,
+                                                              account_type_id=net_account.account_type_id)
 
-    update_account_statement_query = None
-    if last_account_statement:
-        update_account_statement_query = update(AccountStatement
+    if last_account_statement and (
+            last_account_statement.token_balance == db_account.token_balance and
+            last_account_statement.native_balance == db_account.native_balance):
+        upsert_account_statement_query = update(AccountStatement
                                                 ).where(
             AccountStatement.account_address == last_account_statement.account_address,
             AccountStatement.account_type_id == last_account_statement.account_type_id,
             AccountStatement.timestamp == last_account_statement.timestamp)
-        update_account_statement_query = update_account_statement_query.values(
+        upsert_account_statement_query = upsert_account_statement_query.values(
             dict(timestamp=op_timestamp,
-                 native_balance=account.native_balance,
-                 token_balance=account.token_balance))
+                 native_balance=net_account.native_balance,
+                 token_balance=net_account.token_balance))
+    else:
+        upsert_account_statement_query = insert(
+            AccountStatement).values(dict(account_address=net_account.address,
+                                          account_type_id=net_account.account_type_id,
+                                          timestamp=op_timestamp,
+                                          native_balance=net_account.native_balance,
+                                          token_balance=net_account.token_balance))
 
-    insert_account_statement_query = insert(
-        AccountStatement).values(dict(account_address=account.address,
-                                      account_type_id=account.account_type_id,
-                                      timestamp=op_timestamp,
-                                      native_balance=account.native_balance,
-                                      token_balance=account.token_balance))
-
-    native_tx = await get_native_trns_from_net(http_session=http_session,
-                                               account=account,
-                                               api_keys=api_keys) if not db_account or (
-            db_account.native_balance != account.native_balance) else None
-    token_tx = await get_token_trns_from_net(http_session=http_session,
-                                             account=account,
-                                             api_keys=api_keys) if not db_account or (
-            db_account.token_balance != account.token_balance) else None
     async with session() as session:
         result: Result = await session.execute(get_upsert_account_query(
-            dict(address=account.address,
-                 account_type_id=account.account_type_id,
-                 native_balance=account.native_balance,
-                 token_balance=account.token_balance,
+            dict(address=net_account.address,
+                 account_type_id=net_account.account_type_id,
+                 native_balance=net_account.native_balance,
+                 token_balance=net_account.token_balance,
                  updated_at=op_timestamp)))
         updated_account: Account = result.scalars().one()
-        if last_account_statement:
-            upsert_account_statement_query = update_account_statement_query
-        else:
-            upsert_account_statement_query = insert_account_statement_query
         await session.execute(upsert_account_statement_query)
 
-        for tx_type in ("token", "native"):
-            if (tx_type == "token" and not token_tx) or (tx_type == "native" and not native_tx):
+        for tx_type, t in tx.items():
+            if not t:
                 continue
-            tx_list = list(token_tx) if tx_type == "token" else list(native_tx)
+            tx_list = list(t)
             actual_tx_values = get_actual_tx(tx_type=tx_type,
                                              account_tx=tx_list,
                                              old_amount=db_account.token_balance if db_account else 0,
-                                             account=account)
-            account_addresses = get_account_addresses_from_tx(account_tx=tx_list, account=account)
+                                             account=net_account)
+            account_addresses = get_account_addresses_from_tx(account_tx=tx_list, account=net_account)
             if len(account_addresses):
                 await session.execute(insert(Account).values(account_addresses).on_conflict_do_nothing())
             if len(actual_tx_values):
