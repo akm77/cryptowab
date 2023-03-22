@@ -159,9 +159,9 @@ class AddressBookEntry(Base):
 
     account_alias: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     track_native: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=expression.false())
-    native_threshold: Mapped[int] = mapped_column(nullable=False, server_default=text("10"))
+    native_threshold: Mapped[int] = mapped_column(VeryBigInt, nullable=False, server_default=text("10"))
     track_token: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=expression.false())
-    token_threshold: Mapped[int] = mapped_column(nullable=False, server_default=text("10"))
+    token_threshold: Mapped[int] = mapped_column(VeryBigInt, nullable=False, server_default=text("10"))
     schedule: Mapped[int] = mapped_column(nullable=False, server_default=text("10"))
 
     account: Mapped["Account"] = relationship()

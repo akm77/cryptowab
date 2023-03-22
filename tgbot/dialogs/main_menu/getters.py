@@ -21,7 +21,7 @@ async def get_address_book(dialog_manager: DialogManager, **middleware_data):
                                                           address_book_id=event.chat.id)
     address_book_title = event.from_user.full_name if event.chat.type == "private" else event.chat.title
     items = [(f"{entry.account_alias} | "
-              f"{format_decimal(value_to_decimal(entry.account.token_balance / entry.account.account_type.native_unit), pre=2)} | "
+              f"{format_decimal(value_to_decimal(entry.account.token_balance / entry.account.account_type.token_unit), pre=2)} | "
               f"{format_decimal(value_to_decimal(entry.account.native_balance / entry.account.account_type.native_unit), pre=2)}",
               f"{entry.account_address}_{entry.account_type_id}")
              for entry in address_book_entries if address_book_entries]
@@ -92,7 +92,8 @@ async def get_address_book_entry(dialog_manager: DialogManager, **middleware_dat
     token_transactions_text = "token_transactions_text"
     ctx.dialog_data.update(native_transactions_text=native_transactions_text)
     ctx.dialog_data.update(token_transactions_text=token_transactions_text)
-    ctx.dialog_data.update(account_type_unit=entry.account.account_type.native_unit)
+    ctx.dialog_data.update(native_unit=entry.account.account_type.native_unit)
+    ctx.dialog_data.update(token_unit=entry.account.account_type.token_unit)
 
     return {"started_by": started_by,
             "account_alias": entry.account_alias,
@@ -105,7 +106,7 @@ async def get_address_book_entry(dialog_manager: DialogManager, **middleware_dat
                 entry.account.token_balance / entry.account.account_type.native_unit), pre=2),
             "track_token": "✓" if entry.track_token else "☐",
             "token_threshold": format_decimal(value_to_decimal(
-                entry.token_threshold / entry.account.account_type.native_unit), pre=6),
+                entry.token_threshold / entry.account.account_type.token_unit), pre=6),
             "track_native": "✓" if entry.track_native else "☐",
             "native_threshold": format_decimal(value_to_decimal(
                 entry.native_threshold / entry.account.account_type.native_unit), pre=6),

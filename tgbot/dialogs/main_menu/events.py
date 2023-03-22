@@ -75,7 +75,9 @@ async def threshold_handler(message: Message, message_input: MessageInput,
     address_book_id = message.chat.id
     account_address = ctx.dialog_data.get("account_address")
     account_type = ctx.dialog_data.get("account_type")
-    account_type_unit = int(ctx.dialog_data.get("account_type_unit"))
+    native_unit = int(ctx.dialog_data.get("native_unit"))
+    token_unit = int(ctx.dialog_data.get("token_unit"))
+
     address_book_title = message.from_user.full_name if message.chat.type == "private" else message.chat.title
     values = {}
 
@@ -83,11 +85,11 @@ async def threshold_handler(message: Message, message_input: MessageInput,
         case states.MainMenuStates.enter_native_threshold:
             values["native_threshold"] = int(check_digit_value(message.text,
                                                                type_factory=float,
-                                                               min=0, max=999) * account_type_unit)
+                                                               min=0, max=999) * native_unit)
         case states.MainMenuStates.enter_token_threshold:
             values["token_threshold"] = int(check_digit_value(message.text,
                                                               type_factory=float,
-                                                              min=0, max=999) * account_type_unit)
+                                                              min=0, max=999) * token_unit)
 
     await update_address_book_entry(session=db_session,
                                     address_book_id=address_book_id,
